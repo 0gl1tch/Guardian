@@ -31,15 +31,66 @@
 
 ### One-Liners
 
-**Windows (PowerShell):**
+⚠️ **CRITICAL: Choose the CORRECT command for your OS**
+
+**❌ ERROR:** Do NOT try to run Windows commands on Linux/macOS (and vice versa)
+
+---
+
+#### **🪟 WINDOWS (PowerShell ONLY) - Copy-Paste This:**
 ```powershell
-iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+python -c (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
 ```
 
-**Linux/macOS (Bash):**
-```bash
-curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
+**Alternative methods (all work the same):**
+```powershell
+# Method 1: With variable
+$code = (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+python -c $code
+
+# Method 2: With pipe
+(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py') | python
 ```
+
+**This ONLY works on Windows in PowerShell**
+
+**Common error if you use `iex()` (WRONG):**
+```
+iex : No linha:13 caractere:1
+A palavra-chave 'from' não tem suporte nesta versão da linguagem.
+```
+← This means PowerShell tried to execute Python code. Use `python -c` instead.
+
+---
+
+#### **🐧 LINUX/macOS (Bash ONLY) - Use ONE of these:**
+
+**Option 1: Interactive Mode (Recommended)**
+```bash
+python3 <(curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py)
+```
+
+**Option 2: Piped with Commands (Automated)**
+```bash
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3 << 'EOF'
+snapshot full
+processes
+export report.json
+exit
+EOF
+```
+
+**These do NOT work on Windows (PowerShell doesn't understand them)**
+
+---
+
+#### **💻 LOCAL (All Platforms):**
+```bash
+# First: Clone or download guardian_standalone.py
+python3 guardian_standalone.py
+```
+
+This works everywhere: Windows, Linux, macOS
 
 ---
 
@@ -85,10 +136,12 @@ curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalo
 - Completely ephemeral
 
 ### ✅ Cross-Platform
-- Windows PowerShell (IEX)
-- Linux Bash (curl)
-- macOS Bash (curl)
-- All tested and working
+- **Windows**: PowerShell only (use `iex`)
+- **Linux**: Bash only (use `curl` or `python3`)
+- **macOS**: Bash only (use `curl` or `python3`)
+- Local execution works on all platforms
+- ❌ Do NOT use PowerShell syntax on Linux/macOS
+- ❌ Do NOT use Bash syntax on Windows PowerShell
 
 ### ✅ Full DFIR Capabilities
 - `processes` - List processes
@@ -131,15 +184,17 @@ GitHub/Your Server
 ### Option 1: GitHub (Easiest)
 ```
 1. Push guardian_standalone.py to GitHub
-2. Get raw URL
-3. Share: iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+2. Get raw URL (raw.githubusercontent.com)
+3. Share Windows command: python -c (New-Object Net.WebClient).DownloadString('URL')
+4. Share Linux command: python3 <(curl URL)
 ```
 
 ### Option 2: Self-Hosted Server
 ```
 1. Run: python3 server.py 0.0.0.0 8080
-2. Share: iex(New-Object Net.WebClient).DownloadString('http://your-ip:8080/guardian')
-3. Server also serves PowerShell loaders
+2. Windows: python -c (New-Object Net.WebClient).DownloadString('http://your-ip:8080/guardian')
+3. Linux: python3 <(curl http://your-ip:8080/guardian)
+4. Server also serves PowerShell loaders
 ```
 
 ### Option 3: Embed & Distribute
@@ -154,9 +209,18 @@ GitHub/Your Server
 ## Usage Examples
 
 ### Quick IR Snapshot
+
+**Windows (PowerShell):**
 ```powershell
-# Windows
-iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+python -c (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+(guardian) snapshot full
+(guardian) export IR_report.json
+(guardian) exit
+```
+
+**Linux/macOS (Bash):**
+```bash
+python3 <(curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py)
 Guardian> snapshot full
 Guardian> export IR_report.json
 Guardian> exit
@@ -164,7 +228,7 @@ Guardian> exit
 
 ### Network Assessment
 ```bash
-# Linux
+# Linux/macOS - Automated collection via stdin
 curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3 << 'EOF'
 network
 processes
