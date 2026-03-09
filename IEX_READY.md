@@ -39,22 +39,21 @@
 
 #### **🪟 WINDOWS (PowerShell ONLY) - Copy-Paste This:**
 ```powershell
-iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
+Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
 ```
 
 **That's it! No Python, no downloads, no dependencies.**
 
-This downloads and executes Guardian directly in PowerShell.
+This downloads and executes Guardian directly in PowerShell with an interactive numbered menu.
 
-**Alternative methods:**
-```powershell
-# Method 1: With variable
-$code = (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
-Invoke-Expression $code
-
-# Method 2: Direct Invoke-Expression
-Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1'))
-```
+**Menu Options:**
+- `1` - List running processes
+- `2` - Show network connections
+- `3` - Display system information
+- `4` - Capture full DFIR snapshot
+- `5` - Export snapshots to JSON
+- `6` - View previous snapshots
+- `0` - Exit Guardian
 
 **This ONLY works on Windows in PowerShell (no dependencies needed)**
 
@@ -145,17 +144,17 @@ This works everywhere: Windows, Linux, macOS
 - ❌ PowerShell script only works on Windows
 
 ### Full DFIR Capabilities
-- `processes` - List running processes
-- `network` - Active network connections
-- `software` - Installed software
-- `sysinfo` - System information
-- `firewall` - Windows Firewall rules
-- `tasks` - Scheduled tasks
-- `logs` - Event logs
-- `snapshot` - Multi-type forensic snapshots
-- `export` - JSON export for analysis
-- `run` - Execute arbitrary PowerShell commands
-- `history` - Command history
+
+Simple numbered menu interface:
+- `1` - Processes - List running processes with memory usage
+- `2` - Network - Active network connections and ports
+- `3` - System Info - OS version, hardware, resources
+- `4` - Full Snapshot - Capture all forensic data
+- `5` - Export - Save snapshots to JSON for analysis
+- `6` - Snapshots - View all collected snapshots
+- Just type number and press Enter
+
+All data collected and exported to JSON format for analysis tools.
 
 ---
 
@@ -214,11 +213,25 @@ GitHub/Your Server
 
 **Windows (PowerShell) - One-Liner:**
 ```powershell
-iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
-# Then in Guardian:
-(guardian) snapshot full
-(guardian) export IR_report.json
-(guardian) exit
+Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
+```
+
+**Then in Guardian menu:**
+```
+1. Processes
+2. Network
+3. System Info
+4. Full Snapshot       <- Press 4 for full DFIR capture
+5. Export to JSON      <- Press 5 to save results
+6. View Snapshots
+0. Exit               <- Press 0 to exit
+```
+
+**Example usage:**
+```
+Press: 4 (takes full snapshot)
+Press: 5 (exports to JSON)
+Press: 0 (exit)
 ```
 
 ### Network Assessment
