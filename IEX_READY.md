@@ -33,12 +33,12 @@
 
 **Windows (PowerShell):**
 ```powershell
-iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/your-username/Guardian/main/guardian_standalone.py')
+iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
 ```
 
 **Linux/macOS (Bash):**
 ```bash
-curl https://raw.githubusercontent.com/your-username/Guardian/main/guardian_standalone.py | python3
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 ```
 
 ---
@@ -132,7 +132,7 @@ GitHub/Your Server
 ```
 1. Push guardian_standalone.py to GitHub
 2. Get raw URL
-3. Share: iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/...')
+3. Share: iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
 ```
 
 ### Option 2: Self-Hosted Server
@@ -156,16 +156,16 @@ GitHub/Your Server
 ### Quick IR Snapshot
 ```powershell
 # Windows
-iex(New-Object Net.WebClient).DownloadString('http://ir-server:8080/guardian')
-(guardian) snapshot full
-(guardian) export IR_report.json
-(guardian) exit
+iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+Guardian> snapshot full
+Guardian> export IR_report.json
+Guardian> exit
 ```
 
 ### Network Assessment
 ```bash
 # Linux
-curl http://ir-server:8080/guardian | python3 << 'EOF'
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3 << 'EOF'
 network
 processes
 snapshot processes
@@ -178,7 +178,7 @@ EOF
 ```bash
 # Collect from multiple systems
 for server in web1 web2 db1; do
-    ssh $server "curl http://ir/guardian | python3" << 'CMDS'
+    ssh $server "curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3" << 'CMDS'
 snapshot full
 export /tmp/forensics.json
 exit
