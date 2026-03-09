@@ -39,27 +39,26 @@
 
 #### **🪟 WINDOWS (PowerShell ONLY) - Copy-Paste This:**
 ```powershell
-python -c (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
 ```
 
-**Alternative methods (all work the same):**
+**That's it! No Python, no downloads, no dependencies.**
+
+This downloads and executes Guardian directly in PowerShell.
+
+**Alternative methods:**
 ```powershell
 # Method 1: With variable
-$code = (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
-python -c $code
+$code = (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
+Invoke-Expression $code
 
-# Method 2: With pipe
-(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py') | python
+# Method 2: Direct Invoke-Expression
+Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1'))
 ```
 
-**This ONLY works on Windows in PowerShell**
+**This ONLY works on Windows in PowerShell (no dependencies needed)**
 
-**Common error if you use `iex()` (WRONG):**
-```
-iex : No linha:13 caractere:1
-A palavra-chave 'from' não tem suporte nesta versão da linguagem.
-```
-← This means PowerShell tried to execute Python code. Use `python -c` instead.
+**Guardian will start immediately and show interactive menu.**
 
 ---
 
@@ -125,33 +124,38 @@ This works everywhere: Windows, Linux, macOS
 ## Key Features
 
 ### ✅ Zero Dependencies
-- `guardian_standalone.py` = 100% self-contained
-- Uses only Python stdlib
-- No pip install needed on target
+- `guardian.ps1` = 100% PowerShell native code
+- No Python required
+- No external downloads needed
+- Works with just PowerShell (built-in on Windows)
+- Completely ephemeral (in-memory only)
 
 ### ✅ In-Memory Execution
 - Downloads Python script
-- Pipes directly to python3
-- Zero files on disk (unless you export)
-- Completely ephemeral
+- Uses native Windows/PowerShell commands
+- `Get-Process` for processes
+- `Get-NetTCPConnection` for network
+- `Get-WmiObject` for software and system info
+- `ConvertTo-Json` for export
 
 ### ✅ Cross-Platform
-- **Windows**: PowerShell only (use `iex`)
-- **Linux**: Bash only (use `curl` or `python3`)
-- **macOS**: Bash only (use `curl` or `python3`)
-- Local execution works on all platforms
-- ❌ Do NOT use PowerShell syntax on Linux/macOS
-- ❌ Do NOT use Bash syntax on Windows PowerShell
+- **Windows**: PowerShell native (use `iex` directly)
+- **Linux**: Use Python version (`python3_standalone.py`)
+- **macOS**: Use Python version (`python3_standalone.py`)
+- ❌ PowerShell script only works on Windows
 
-### ✅ Full DFIR Capabilities
-- `processes` - List processes
-- `network` - Network connections
+### Full DFIR Capabilities
+- `processes` - List running processes
+- `network` - Active network connections
 - `software` - Installed software
 - `sysinfo` - System information
+- `firewall` - Windows Firewall rules
+- `tasks` - Scheduled tasks
+- `logs` - Event logs
 - `snapshot` - Multi-type forensic snapshots
 - `export` - JSON export for analysis
-- `run` - Execute arbitrary commands
-- `bootstrap` - Download verified files
+- `run` - Execute arbitrary PowerShell commands
+- `history` - Command history
 
 ---
 
@@ -183,24 +187,22 @@ GitHub/Your Server
 
 ### Option 1: GitHub (Easiest)
 ```
-1. Push guardian_standalone.py to GitHub
+1. Push guardian.ps1 to GitHub
 2. Get raw URL (raw.githubusercontent.com)
-3. Share Windows command: python -c (New-Object Net.WebClient).DownloadString('URL')
-4. Share Linux command: python3 <(curl URL)
+3. Share Windows command: iex(New-Object Net.WebClient).DownloadString('URL')
 ```
 
 ### Option 2: Self-Hosted Server
 ```
 1. Run: python3 server.py 0.0.0.0 8080
-2. Windows: python -c (New-Object Net.WebClient).DownloadString('http://your-ip:8080/guardian')
-3. Linux: python3 <(curl http://your-ip:8080/guardian)
-4. Server also serves PowerShell loaders
+2. Windows: iex(New-Object Net.WebClient).DownloadString('http://your-ip:8080/guardian.ps1')
+3. Server hosts guardian.ps1 for distribution
 ```
 
-### Option 3: Embed & Distribute
+### Option 3: Embed in Environment
 ```
-1. Convert guardian_standalone.py to base64
-2. Embed in PowerShell script
+1. Embed guardian.ps1 in your custom launcher
+2. Include in deployment package
 3. No internet required for target
 ```
 
@@ -210,20 +212,13 @@ GitHub/Your Server
 
 ### Quick IR Snapshot
 
-**Windows (PowerShell):**
+**Windows (PowerShell) - One-Liner:**
 ```powershell
-python -c (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py')
+iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian.ps1')
+# Then in Guardian:
 (guardian) snapshot full
 (guardian) export IR_report.json
 (guardian) exit
-```
-
-**Linux/macOS (Bash):**
-```bash
-python3 <(curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py)
-Guardian> snapshot full
-Guardian> export IR_report.json
-Guardian> exit
 ```
 
 ### Network Assessment
