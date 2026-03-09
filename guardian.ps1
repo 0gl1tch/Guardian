@@ -442,7 +442,7 @@ function Start-GuardianShell {
 }
 
 function Show-Help {
-    Write-Title "Guardian DFIR CLI - Command Reference"
+    Write-Title 'Guardian DFIR CLI - Command Reference'
     $helpText = @'
 DFIR Collection Commands:
   processes (p)         - List running processes
