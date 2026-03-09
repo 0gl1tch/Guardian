@@ -443,15 +443,15 @@ function Start-GuardianShell {
 
 function Show-Help {
     Write-Title "Guardian DFIR CLI - Command Reference"
-    Write-Host @"
+    $helpText = @'
 DFIR Collection Commands:
-  processes, p          - List running processes
-  network, n            - Show network connections
-  software, s           - List installed software
-  sysinfo, sys          - Display system information
-  firewall, fw          - Show firewall rules
-  tasks, t              - List scheduled tasks
-  logs, l               - Show recent event logs
+  processes (p)         - List running processes
+  network (n)           - Show network connections
+  software (s)          - List installed software
+  sysinfo (sys)         - Display system information
+  firewall (fw)         - Show firewall rules
+  tasks (t)             - List scheduled tasks
+  logs (l)              - Show recent event logs
 
 Snapshot Commands:
   snapshot [type]       - Take a forensic snapshot
@@ -460,17 +460,18 @@ Snapshot Commands:
   export [filename]     - Export snapshots to JSON (default: guardian_export.json)
 
 System Commands:
-  run <command>         - Execute arbitrary PowerShell command
-  history, hist         - Show command history
-  help, ?               - Show this help
-  exit, quit, q         - Exit Guardian
+  run [command]         - Execute arbitrary PowerShell command
+  history (hist)        - Show command history
+  help (?)              - Show this help
+  exit (quit, q)        - Exit Guardian
 
 Examples:
-  > snapshot full
-  > processes
-  > export my_forensics.json
-  > run Get-LocalUser
-"@ -ForegroundColor White
+  snapshot full
+  processes
+  export my_forensics.json
+  run Get-LocalUser
+'@
+    Write-Host $helpText -ForegroundColor White
 }
 
 # ============================================================================
