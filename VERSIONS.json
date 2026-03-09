@@ -1,0 +1,69 @@
+{
+  "current": "0.2.0",
+  "branches": {
+    "main": {
+      "version": "0.2.0",
+      "name": "stable",
+      "description": "Production-ready, stable releases",
+      "url": "https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py",
+      "released": "2024-03-09",
+      "changelog": [
+        "Zero external dependencies",
+        "IEX remote execution ready",
+        "Full DFIR toolkit",
+        "Native Windows/Unix commands",
+        "Forensic snapshots",
+        "JSON export"
+      ]
+    },
+    "develop": {
+      "version": "0.3.0-dev",
+      "name": "latest",
+      "description": "Latest features (may be unstable)",
+      "url": "https://raw.githubusercontent.com/0gl1tch/Guardian/develop/guardian_standalone.py",
+      "released": "2024-03-15",
+      "features": [
+        "Auto-update capability",
+        "Version management",
+        "Rollback support",
+        "Multiple deployment branches"
+      ]
+    },
+    "dev": {
+      "version": "0.4.0-alpha",
+      "name": "development",
+      "description": "Experimental features (use with caution)",
+      "url": "https://raw.githubusercontent.com/0gl1tch/Guardian/dev/guardian_standalone.py",
+      "released": "2024-03-20",
+      "warning": "Development branch - not for production!"
+    }
+  },
+  "releases": {
+    "0.2.0": {
+      "date": "2024-03-09",
+      "status": "stable",
+      "download": "https://github.com/0gl1tch/Guardian/releases/tag/v0.2.0",
+      "changes": [
+        "Initial release",
+        "Full DFIR capabilities",
+        "IEX delivery support"
+      ]
+    },
+    "0.3.0": {
+      "date": "2024-04-01",
+      "status": "planned",
+      "features": [
+        "Auto-update system",
+        "Version checking",
+        "Rollback capability",
+        "Multi-branch deployment"
+      ]
+    }
+  },
+  "update_strategy": {
+    "auto_check": true,
+    "auto_backup": true,
+    "check_interval_hours": 24,
+    "notify_on_update": true
+  }
+}
