@@ -42,18 +42,27 @@ function Get-PythonExeCandidates {
 function Find-ValidPythonExe {
     foreach ($candidate in Get-PythonExeCandidates) {
         try {
-            if ($candidate -match 'py') {
-                $parts = $candidate -split ' '
-                $exe = $parts[0]
-                $args = $parts[1..($parts.Length-1)]
-                $output = & $exe @args --version 2>&1
-                if ($LASTEXITCODE -eq 0 -and $output -match 'Python\s+3\.') { return "$exe $($args -join ' ')" }
-            } else {
-                if (Get-Command $candidate -ErrorAction SilentlyContinue) {
-                    $path = (Get-Command $candidate).Source
-                    if (Validate-PythonExe -Candidate $path) { return $path }
-                } elseif (Test-Path $candidate) {
-                    if (Validate-PythonExe -Candidate $candidate) { return $candidate }
+            $parts = $candidate -split ' '
+            $exe = $parts[0]
+            $args = @()
+            if ($parts.Length -gt 1) { $args = $parts[1..($parts.Length-1)] }
+
+            $found = $null
+            if (Get-Command $exe -ErrorAction SilentlyContinue) {
+                $found = (Get-Command $exe).Source
+            } elseif (Test-Path $candidate) {
+                $found = $candidate
+            }
+
+            if ($found) {
+                $versionArgs = @('--version')
+                if ($args) { $versionArgs = $args + $versionArgs }
+                try {
+                    $output = & $exe @versionArgs 2>&1
+                    if ($LASTEXITCODE -eq 0 -and $output -match 'Python\s+3\.') {
+                        return @{ Exe = $exe; Args = $args }
+                    }
+                } catch {
                 }
             }
         } catch {
@@ -179,13 +188,14 @@ try {
 
     # Create a temporary PowerShell launcher script to avoid escaping issues
     $launcherScript = Join-Path $env:TEMP "guardian_launcher_$(Get-Random).ps1"
+    $pythonCmd = if ($pythonExe.Args -and $pythonExe.Args.Count -gt 0) { "& '$($pythonExe.Exe)' $($pythonExe.Args -join ' ') '$tempScript'" } else { "& '$($pythonExe.Exe)' '$tempScript'" }
     $launcherContent = @"
 Write-Host 'Guardian session started. Output below:' -ForegroundColor Green
 try {
-    & '$pythonExe' '$tempScript'
+    $($pythonCmd)
 } catch {
     Write-Host "[!] Python execution failed from launcher: $_" -ForegroundColor Red
-    Write-Host "[!] Verifying Python path: $pythonExe" -ForegroundColor Yellow
+    Write-Host "[!] Verifying Python command: $pythonCmd" -ForegroundColor Yellow
     Write-Host "[!] Please install Python 3 and add to PATH." -ForegroundColor Red
 }
 Write-Host ''
