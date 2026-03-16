@@ -73,23 +73,8 @@ try {
     }
 
     Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
-    $launcherScript = Join-Path $env:TEMP "guardian_launcher_$(Get-Random).ps1"
-    $launcherContent = @"
-Write-Host 'Guardian session started. Output below:' -ForegroundColor Green
-& '$pythonExe' '$tempScript'
-Write-Host ''
-Write-Host 'Guardian session finished. Press Enter to close this window.' -ForegroundColor Yellow
-Read-Host
-"@
-    $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
-
-    # Build stable argument string
-    $launcherCommand = "& '$launcherScript'"
-    if ($terminalExe -like '*pwsh*') {
-        $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $launcherCommand)
-    } else {
-        $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $launcherCommand)
-    }
+    $runCommand = "& '$pythonExe' '$tempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
+    $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $runCommand)
 
     try {
         Write-Host "[*] Starting new terminal using: $terminalExe" -ForegroundColor Cyan
@@ -97,7 +82,6 @@ Read-Host
         Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs -WindowStyle Normal -ErrorAction Stop | Out-Null
         Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
-        Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
     } catch {
         Write-Host "[!] Failed to start new terminal: $_" -ForegroundColor Red
         Write-Host "[!] Falling back to running inline in this window." -ForegroundColor Yellow
