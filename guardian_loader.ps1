@@ -45,19 +45,41 @@ try {
         exit 1
     }
     
-    Write-Host "[*] Executing Guardian..." -ForegroundColor Cyan
-    
-    # Execute Python code inline, completely in-memory
-    # The script will start the interactive REPL
+    Write-Host "[*] Preparing Guardian temp script..." -ForegroundColor Cyan
+
+    $tempScript = Join-Path $env:TEMP "guardian_standalone_$(Get-Random).py"
+    $pythonCode | Out-File -FilePath $tempScript -Encoding UTF8
+
+    $pythonExe = $null
     if (Get-Command python3 -ErrorAction SilentlyContinue) {
-        $pythonCode | python3
+        $pythonExe = (Get-Command python3).Source
     } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-        $pythonCode | python
-    } else {
+        $pythonExe = (Get-Command python).Source
+    }
+
+    if (-not $pythonExe) {
         Write-Host "[!] Python not found. Install Python 3 and add to PATH." -ForegroundColor Red
         exit 1
     }
-    
+
+    $terminalExe = $null
+    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+        $terminalExe = (Get-Command pwsh).Source
+    } elseif (Get-Command powershell -ErrorAction SilentlyContinue) {
+        $terminalExe = (Get-Command powershell).Source
+    } else {
+        Write-Host "[!] Neither pwsh nor powershell found to spawn interactive terminal." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
+    $guardianCommand = "& '$pythonExe' '$tempScript'"
+    $terminalArgs = @('-NoExit', '-NoProfile', '-Command', "$guardianCommand; if ($?) { Write-Host 'Guardian session ended.'; } Read-Host 'Press Enter to close this window.'")
+
+    Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs | Out-Null
+    Write-Host "✅ Guardian started in a new terminal. You can continue using this window." -ForegroundColor Green
+    Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
+
 } catch {
     Write-Host "[!] Error: $_" -ForegroundColor Red
     exit 1
