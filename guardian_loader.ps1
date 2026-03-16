@@ -124,12 +124,17 @@ Read-Host 'Press Enter to close this window.'
 "@
     $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
 
-    $psArgs = @(
-        '-NoExit',
-        '-NoProfile',
-        '-ExecutionPolicy', 'Bypass',
-        '-File', $launcherScript
-    )
+    if ($terminalExe -match "wt(.exe)?$") {
+        # Windows Terminal requires command after executable
+        $psArgs = @("powershell", "-NoExit", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $launcherScript)
+    } else {
+        $psArgs = @(
+            '-NoExit',
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', $launcherScript
+        )
+    }
 
     try {
         Write-Host "[*] Launching new terminal via Start-Process: $terminalExe $($psArgs -join ' ')" -ForegroundColor Cyan
