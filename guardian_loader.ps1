@@ -73,7 +73,9 @@ try {
     }
 
     Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
-    $runCommand = "& '$pythonExe' '$tempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
+    $escapedPythonExe = $pythonExe -replace "'", "''"
+    $escapedTempScript = $tempScript -replace "'", "''"
+    $runCommand = "& '$escapedPythonExe' '$escapedTempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
     $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $runCommand)
 
     try {
