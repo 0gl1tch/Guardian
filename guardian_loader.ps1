@@ -83,7 +83,9 @@ Read-Host
 "@
     $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
 
-    $terminalArgs = @('-NoExit', '-NoProfile', '-File', $launcherScript)
+    # Build stable argument string
+    $terminalArgs = "-NoExit -NoProfile -File `"$launcherScript`""
+
     try {
         Write-Host "[*] Starting new terminal using: $terminalExe" -ForegroundColor Cyan
         Write-Host "[*] Args: $terminalArgs" -ForegroundColor Cyan
@@ -97,6 +99,8 @@ Read-Host
         & $pythonExe $tempScript
         Read-Host "Press Enter to close"
     }
+
+    Read-Host "Loader complete. Press Enter to close this loader shell."
 
 } catch {
     Write-Host "[!] Error: $_" -ForegroundColor Red
