@@ -17,6 +17,36 @@ function Get-PythonExe {
     return $null
 }
 
+function Get-PythonExeFromCommonPaths {
+    $commonPaths = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:ProgramFiles\Python310\python.exe",
+        "$env:ProgramFiles\Python311\python.exe",
+        "$env:ProgramFiles\Python312\python.exe",
+        "C:\\Python310\\python.exe",
+        "C:\\Python311\\python.exe",
+        "C:\\Python312\\python.exe"
+    )
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) { return $path }
+    }
+    return $null
+}
+
+function Validate-PythonExe {
+    param([string]$Candidate)
+    try {
+        $v = & "$Candidate" --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and $v -match 'Python\s+3\.') {
+            return $true
+        }
+    } catch {
+    }
+    return $false
+}
+
 function Install-Python3 {
     Write-Host "[*] Python not found. Attempting automated install..." -ForegroundColor Cyan
     if (Get-Command winget -ErrorAction SilentlyContinue) {
@@ -72,16 +102,30 @@ try {
     $pythonCode | Out-File -FilePath $tempScript -Encoding UTF8
 
     $pythonExe = Get-PythonExe
-    if (-not $pythonExe) {
-        if (-not (Install-Python3)) {
-            exit 1
+    if ($pythonExe) {
+        if (-not (Validate-PythonExe -Candidate $pythonExe)) {
+            Write-Host "[!] Found Python executable but failed validation: $pythonExe" -ForegroundColor Yellow
+            $pythonExe = $null
         }
-        Start-Sleep -Seconds 3
-        $pythonExe = Get-PythonExe
     }
 
     if (-not $pythonExe) {
-        Write-Host "[!] Python not found after installation attempt. Please install Python 3 manually." -ForegroundColor Red
+        if (-not (Install-Python3)) {
+            Write-Host "[!] Python install failed." -ForegroundColor Red
+            exit 1
+        }
+        Start-Sleep -Seconds 4
+        $pythonExe = Get-PythonExe
+        if (-not $pythonExe) { $pythonExe = Get-PythonExeFromCommonPaths }
+    }
+
+    if ($pythonExe -and -not (Validate-PythonExe -Candidate $pythonExe)) {
+        Write-Host "[!] Python executable exists but could not run --version: $pythonExe" -ForegroundColor Yellow
+        $pythonExe = $null
+    }
+
+    if (-not $pythonExe) {
+        Write-Host "[!] Python not found after installation attempt. Please install Python 3 manually and add to PATH." -ForegroundColor Red
         exit 1
     }
 
@@ -117,7 +161,13 @@ try {
     $launcherScript = Join-Path $env:TEMP "guardian_launcher_$(Get-Random).ps1"
     $launcherContent = @"
 Write-Host 'Guardian session started. Output below:' -ForegroundColor Green
-& '$pythonExe' '$tempScript'
+try {
+    & '$pythonExe' '$tempScript'
+} catch {
+    Write-Host "[!] Python execution failed from launcher: $_" -ForegroundColor Red
+    Write-Host "[!] Verifying Python path: $pythonExe" -ForegroundColor Yellow
+    Write-Host "[!] Please install Python 3 and add to PATH." -ForegroundColor Red
+}
 Write-Host ''
 Write-Host 'Guardian session ended.' -ForegroundColor Green
 Read-Host 'Press Enter to close this window.'
