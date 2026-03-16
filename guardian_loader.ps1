@@ -87,10 +87,16 @@ Read-Host 'Press Enter to close this window.'
 "@
     $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
 
-    $cmd = "start powershell -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$launcherScript`""
+    $psArgs = @(
+        '-NoExit',
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', $launcherScript
+    )
+
     try {
-        Write-Host "[*] Launching new terminal via cmd: $cmd" -ForegroundColor Cyan
-        Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $cmd -WindowStyle Normal -ErrorAction Stop | Out-Null
+        Write-Host "[*] Launching new terminal via Start-Process: $terminalExe $($psArgs -join ' ')" -ForegroundColor Cyan
+        Start-Process -FilePath $terminalExe -ArgumentList $psArgs -WindowStyle Normal -ErrorAction Stop | Out-Null
         Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
         Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
