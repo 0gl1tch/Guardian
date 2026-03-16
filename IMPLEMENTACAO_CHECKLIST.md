@@ -215,7 +215,7 @@ https://github.com/0gl1tch/Guardian
 ### URLs IEX (Funcionando)
 ```
 Stable (Recomendado):
-  https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py
+  https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py
 
 Latest (Com features):
   https://raw.githubusercontent.com/0gl1tch/Guardian/develop/guardian_standalone.py

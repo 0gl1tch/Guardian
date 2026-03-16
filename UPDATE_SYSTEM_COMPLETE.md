@@ -16,7 +16,7 @@
 
 **ATUALIZAÇÃO**: É **100% AUTOMÁTICA**. Cada vez que alguém executa:
 ```bash
-curl https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py | python3
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 ```
 
 Eles automaticamente pegam a **versão mais nova** do GitHub. **Sem fazer nada**. **Sem avisar ninguém**.
@@ -81,7 +81,7 @@ dev (Experimental) → v0.4.0-alpha - Development only
 ### 📌 STABLE (main) - Recomendado
 
 ```bash
-curl https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py | python3
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 ```
 
 - ✅ Versão 0.2.0 (atual)

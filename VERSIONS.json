@@ -5,7 +5,7 @@
       "version": "0.2.0",
       "name": "stable",
       "description": "Production-ready, stable releases",
-      "url": "https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py",
+      "url": "https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py",
       "released": "2024-03-09",
       "changelog": [
         "Zero external dependencies",

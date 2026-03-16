@@ -40,14 +40,14 @@ class GuardianUpdateManager:
     
     # Branches strategy
     BRANCHES = {
-        'stable': 'https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py',
+        'stable': 'https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py',
         'latest': 'https://raw.githubusercontent.com/0gl1tch/Guardian/develop/guardian_standalone.py',
         'dev': 'https://raw.githubusercontent.com/0gl1tch/Guardian/dev/guardian_standalone.py',
     }
     
     # Version info endpoint
     VERSION_API = 'https://api.github.com/repos/0gl1tch/Guardian/releases/latest'
-    VERSIONS_FILE = 'https://raw.githubusercontent.com/0gl1tch/Guardian/main/VERSIONS.json'
+    VERSIONS_FILE = 'https://raw.githubusercontent.com/0gl1tch/Guardian/master/VERSIONS.json'
     
     def __init__(self):
         self.current_version = self.parse_current_version()

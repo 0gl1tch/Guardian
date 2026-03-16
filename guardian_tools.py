@@ -7,6 +7,8 @@ Access all Guardian functions by number
 import subprocess
 import sys
 import os
+import shutil
+import platform
 from pathlib import Path
 
 class GuardianTools:
@@ -87,12 +89,50 @@ class GuardianTools:
                               capture_output=False)
         return result.returncode == 0
     
+    def spawn_terminal_for_command(self, command: str) -> bool:
+        """Open a new terminal window to run the specified command."""
+        system = platform.system().lower()
+
+        if system == 'windows':
+            # Use start-process to keep current terminal untouched
+            cmd = ['powershell', '-NoProfile', '-NoExit', '-Command', command]
+            try:
+                subprocess.Popen(cmd)
+                return True
+            except Exception:
+                return False
+
+        terminal_cmd = None
+        if shutil.which('gnome-terminal'):
+            terminal_cmd = ['gnome-terminal', '--', 'bash', '-lc', command]
+        elif shutil.which('konsole'):
+            terminal_cmd = ['konsole', '-e', 'bash', '-lc', command]
+        elif shutil.which('xfce4-terminal'):
+            terminal_cmd = ['xfce4-terminal', '--command', f'bash -lc "{command}"']
+        elif shutil.which('xterm'):
+            terminal_cmd = ['xterm', '-e', f'bash -lc "{command}"']
+        elif shutil.which('alacritty'):
+            terminal_cmd = ['alacritty', '-e', 'bash', '-lc', command]
+        else:
+            # fallback to same terminal
+            terminal_cmd = ['bash', '-lc', command]
+
+        try:
+            subprocess.Popen(terminal_cmd)
+            return True
+        except Exception:
+            return False
+
     def run_guardian(self):
-        """Run Guardian interactive shell"""
-        print("\n🚀 Starting Guardian...\n")
-        result = subprocess.run(['python3', 'guardian_standalone.py'],
-                              capture_output=False)
-        return result.returncode == 0
+        """Run Guardian interactive shell in a new terminal if possible."""
+        print("\n🚀 Starting Guardian in a new terminal session...\n")
+        command = 'python3 guardian_standalone.py'
+        success = self.spawn_terminal_for_command(command)
+        if not success:
+            print("⚠️  Could not open a separate terminal; running in current terminal.")
+            result = subprocess.run(['python3', 'guardian_standalone.py'], capture_output=False)
+            return result.returncode == 0
+        return True
     
     def view_strategy(self):
         """View update strategy documentation"""

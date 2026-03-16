@@ -81,7 +81,7 @@ Mudanças: Rigorosamente testadas
 Risco: MUITO BAIXO ✅
 
 Comando:
-$ curl https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py | python3
+$ curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 
 Quem Usa: Todos (default)
 Quando Atualizar: Quando você tiver certeza 100%

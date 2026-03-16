@@ -80,7 +80,7 @@ python3 update_manager.py update dev       # Experimental
 
 ```bash
 # Baixa versão mais nova do GitHub automaticamente
-curl https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py | python3
+curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 ```
 
 ---
@@ -291,7 +291,7 @@ python3 update_manager.py update dev
 
 ```
 STABLE (Recomendado):
-  curl https://raw.githubusercontent.com/0gl1tch/Guardian/main/guardian_standalone.py | python3
+  curl https://raw.githubusercontent.com/0gl1tch/Guardian/master/guardian_standalone.py | python3
 
 LATEST (Com testes):
   curl https://raw.githubusercontent.com/0gl1tch/Guardian/develop/guardian_standalone.py | python3

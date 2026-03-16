@@ -10,6 +10,7 @@ from .windows_native import (
     get_network_connections,
     get_installed_software,
     get_system_info,
+    get_network_summary,
     is_windows,
 )
 
@@ -87,26 +88,38 @@ class DFIRShell(cmd.Cmd):
                 print(f"... and {len(procs) - 20} more processes")
 
     def do_network(self, arg: str):
-        """network [--json]
-        Show active network connections.
+        """network [--json] [--summary]
+        Show active network connections and optional summary.
         Use --json for JSON output.
         """
+        if "--summary" in arg:
+            summary = get_network_summary()
+            print(json.dumps(summary, indent=2, default=str))
+            return
+
         conns = get_network_connections()
         if "--json" in arg:
-            print(json.dumps(conns, indent=2, default=str))
-        else:
-            if not conns:
-                print("No connections found")
-                return
-            
-            print(f"{'Protocol':<10} {'Local Address':<25} {'Remote Address':<25} {'State':<15} {'PID':<8}")
-            print("-" * 85)
-            for conn in conns[:30]:
-                print(f"{conn.get('protocol', 'N/A'):<10} {conn.get('local_address', 'N/A'):<25} "
-                      f"{conn.get('remote_address', 'N/A'):<25} {conn.get('state', 'N/A'):<15} "
-                      f"{conn.get('pid', 'N/A'):<8}")
-            if len(conns) > 30:
-                print(f"... and {len(conns) - 30} more connections")
+            print(json.dumps({"summary": get_network_summary(), "connections": conns}, indent=2, default=str))
+            return
+
+        print("Network Summary:")
+        summary = get_network_summary()
+        for key, value in summary.items():
+            print(f" - {key}: {value}")
+        print("\nActive connections:")
+
+        if not conns:
+            print("No active connections found")
+            return
+
+        print(f"{'Protocol':<8} {'Local Address':<24} {'Remote Address':<24} {'State':<14} {'PID':<8}")
+        print("-" * 84)
+        for conn in conns[:30]:
+            print(f"{conn.get('protocol', 'N/A'):<8} {conn.get('local_address', 'N/A'):<24} "
+                  f"{conn.get('remote_address', 'N/A'):<24} {conn.get('state', 'N/A'):<14} "
+                  f"{conn.get('pid', 'N/A'):<8}")
+        if len(conns) > 30:
+            print(f"... and {len(conns) - 30} more connections")
 
     def do_software(self, arg: str):
         """software
@@ -131,9 +144,12 @@ class DFIRShell(cmd.Cmd):
         """
         info = get_system_info()
         for key, value in info.items():
-            if key == "systeminfo":
-                print(f"\n{key}:")
-                print(value[:500] + "..." if len(value) > 500 else value)
+            if key == "systeminfo_text":
+                print(f"\nSystem Information Text:\n{value[:500]}...")
+            elif key == "network_summary" and isinstance(value, dict):
+                print("\nNetwork Summary:")
+                for sub_key, sub_val in value.items():
+                    print(f"  - {sub_key}: {sub_val}")
             else:
                 print(f"{key}: {value}")
 

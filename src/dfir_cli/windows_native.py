@@ -5,7 +5,9 @@ Supports tasklist, netstat, wmic, Get-Process (PowerShell), etc.
 import subprocess
 import platform
 import json
-from typing import Dict, List, Tuple
+import re
+import socket
+from typing import Dict, List, Tuple, Optional
 
 
 def is_windows() -> bool:
@@ -28,6 +30,163 @@ def run_command(cmd: str, timeout: int = 30) -> Tuple[int, str, str]:
         return 124, "", "Command timeout"
     except Exception as e:
         return 1, "", str(e)
+
+
+def _extract_ipv4_from_ipconfig(output: str) -> Optional[str]:
+    for line in output.splitlines():
+        line = line.strip()
+        if re.search(r'IPv4.*Address|IPv4 Address|Endereço IPv4', line, re.IGNORECASE):
+            parts = re.split(r'[: ]+', line)
+            for token in parts:
+                if re.match(r'\d+\.\d+\.\d+\.\d+', token):
+                    return token
+    return None
+
+
+def _extract_default_gateway(output: str) -> Optional[str]:
+    for line in output.splitlines():
+        line = line.strip()
+        if re.search(r'Default Gateway', line, re.IGNORECASE):
+            parts = re.split(r'[: ]+', line)
+            for token in parts:
+                if re.match(r'\d+\.\d+\.\d+\.\d+', token):
+                    return token
+    return None
+
+
+def get_internal_ip() -> Optional[str]:
+    """Get the primary internal IP address."""
+    if is_windows():
+        code, out, _ = run_command("ipconfig")
+        if code != 0 or not out:
+            return None
+        ip = _extract_ipv4_from_ipconfig(out)
+        return ip
+
+    # Unix-like fallback
+    code, out, _ = run_command("hostname -I")
+    if code != 0 or not out.strip():
+        return None
+    return out.strip().split()[0]
+
+
+def get_default_gateway() -> Optional[str]:
+    """Get default gateway for active route."""
+    if is_windows():
+        code, out, _ = run_command("route print 0.0.0.0")
+        if code == 0 and out:
+            for line in out.splitlines():
+                if re.match(r"\s*0\.0\.0\.0", line):
+                    columns = line.split()
+                    if len(columns) >= 3 and re.match(r"\d+\.\d+\.\d+\.\d+", columns[2]):
+                        return columns[2]
+        code, out, _ = run_command("ipconfig")
+        return _extract_default_gateway(out)
+
+    code, out, _ = run_command("ip route show default 2>/dev/null")
+    if code == 0 and out:
+        match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
+        if match:
+            return match.group(1)
+    return None
+
+
+def get_dns_servers() -> List[str]:
+    """Get configured DNS servers."""
+    dns = []
+    if is_windows():
+        code, out, _ = run_command("ipconfig /all")
+        if code != 0:
+            return dns
+        for line in out.splitlines():
+            if re.search(r"DNS Servers", line, re.IGNORECASE):
+                parts = line.split(':', 1)
+                if len(parts) > 1:
+                    server = parts[1].strip()
+                    if server:
+                        dns.append(server)
+            elif dns and line.strip() and re.match(r"\d+\.\d+\.\d+\.\d+", line.strip()):
+                dns.append(line.strip())
+        return dns
+
+    # Unix-like
+    try:
+        with open("/etc/resolv.conf", "r") as resolv:
+            for row in resolv:
+                if row.startswith("nameserver"):
+                    parts = row.split()
+                    if len(parts) >= 2:
+                        dns.append(parts[1].strip())
+    except FileNotFoundError:
+        pass
+    return dns
+
+
+def get_active_interface() -> Optional[str]:
+    """Get interface used for outbound traffic."""
+    if is_windows():
+        code, out, _ = run_command("route print 0.0.0.0")
+        if code == 0:
+            for line in out.splitlines():
+                if re.match(r"\s*0\.0\.0\.0", line):
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        return parts[-1]
+        return None
+
+    code, out, _ = run_command("ip route get 8.8.8.8 2>/dev/null")
+    if code == 0 and out:
+        match = re.search(r"dev\s+(\S+)", out)
+        if match:
+            return match.group(1)
+    return None
+
+
+def get_public_ip() -> Optional[str]:
+    """Get public IP using common HTTP services."""
+    candidates = ["https://ifconfig.me/ip", "https://api.ipify.org", "https://ident.me"]
+    for url in candidates:
+        try:
+            import urllib.request
+            with urllib.request.urlopen(url, timeout=5) as r:
+                ip = r.read().decode().strip()
+                if re.match(r"\d+\.\d+\.\d+\.\d+", ip):
+                    return ip
+        except Exception:
+            continue
+    return None
+
+
+def get_connection_uptime() -> Optional[str]:
+    """Get system uptime as proxy for connection uptime."""
+    if is_windows():
+        code, out, _ = run_command("net statistics workstation")
+        if code == 0:
+            for line in out.splitlines():
+                if "Statistics since" in line:
+                    return line.split("Statistics since", 1)[1].strip()
+        return None
+
+    code, out, _ = run_command("cat /proc/uptime")
+    if code == 0 and out:
+        seconds = float(out.split()[0])
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        return f"{hours}h {minutes}m"
+
+    return None
+
+
+def get_network_summary() -> Dict[str, Optional[object]]:
+    """Return a parsed network overview with key fields."""
+    return {
+        "internal_ip": get_internal_ip(),
+        "public_ip": get_public_ip(),
+        "active_interface": get_active_interface(),
+        "default_gateway": get_default_gateway(),
+        "dns_servers": get_dns_servers(),
+        "connection_uptime": get_connection_uptime(),
+    }
 
 
 def get_processes() -> List[Dict]:
@@ -128,17 +287,25 @@ def get_installed_software() -> List[Dict]:
 
 def get_system_info() -> Dict:
     """Get system information."""
-    info = {"os": platform.system(), "platform": platform.platform(), "python": platform.python_version()}
-    
+    info = {
+        "os": platform.system(),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+    }
+
+    network_summary = get_network_summary()
+    if network_summary:
+        info["network_summary"] = network_summary
+
     if is_windows():
         code, out, err = run_command('systeminfo')
         if code == 0:
-            info["systeminfo"] = out
+            info["systeminfo_text"] = out
     else:
         code, out, err = run_command('uname -a')
         if code == 0:
             info["uname"] = out.strip()
-    
+
     return info
 
 

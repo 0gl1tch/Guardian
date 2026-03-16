@@ -10,8 +10,11 @@ import json
 import subprocess
 import platform
 import os
+import re
+import socket
+import urllib.request
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 # ============================================================================
 # NATIVE COMMANDS MODULE
@@ -139,8 +142,83 @@ def get_system_info() -> Dict:
         code, out, err = run_command('uname -a')
         if code == 0:
             info["uname"] = out.strip()
-    
+
+    info["network_summary"] = get_network_summary()
     return info
+
+
+def get_network_summary() -> Dict[str, Optional[str]]:
+    summary = {
+        "internal_ip": None,
+        "public_ip": None,
+        "active_interface": None,
+        "default_gateway": None,
+        "dns_servers": [],
+        "connection_uptime": None,
+    }
+
+    if is_windows():
+        code, out, err = run_command("ipconfig")
+        if code == 0:
+            match = re.search(r"IPv4 Address.*?:\s*([0-9.]+)", out)
+            if match:
+                summary["internal_ip"] = match.group(1)
+            match = re.search(r"Default Gateway.*?:\s*([0-9.]+)", out)
+            if match:
+                summary["default_gateway"] = match.group(1)
+
+        code, out, err = run_command("route print 0.0.0.0")
+        if code == 0:
+            match = re.search(r"0.0.0.0\s+0.0.0.0\s+([0-9.]+)", out)
+            if match:
+                summary["default_gateway"] = summary["default_gateway"] or match.group(1)
+
+        code, out, err = run_command("net statistics workstation")
+        if code == 0:
+            match = re.search(r"Statistics since\s+(.+)$", out, flags=re.MULTILINE)
+            if match:
+                summary["connection_uptime"] = match.group(1).strip()
+
+    else:
+        code, out, err = run_command("hostname -I")
+        if code == 0 and out.strip():
+            summary["internal_ip"] = out.strip().split()[0]
+
+        code, out, err = run_command("ip route show default")
+        if code == 0 and out:
+            match = re.search(r"default via ([0-9.]+).*dev ([^\s]+)", out)
+            if match:
+                summary["default_gateway"] = match.group(1)
+                summary["active_interface"] = match.group(2)
+
+        code, out, err = run_command("cat /proc/uptime")
+        if code == 0 and out:
+            idx = out.split()[0]
+            try:
+                sec = float(idx)
+                summary["connection_uptime"] = f"{int(sec // 3600)}h {int((sec % 3600)//60)}m"
+            except ValueError:
+                pass
+
+    try:
+        with urllib.request.urlopen("https://api.ipify.org", timeout=5) as r:
+            summary["public_ip"] = r.read().decode().strip()
+    except Exception:
+        summary["public_ip"] = None
+
+    try:
+        with open("/etc/resolv.conf", "r") as f:
+            summary["dns_servers"] = [line.split()[1].strip() for line in f if line.startswith("nameserver")]
+    except Exception:
+        if is_windows():
+            code, out, err = run_command("ipconfig /all")
+            for line in out.splitlines():
+                if "DNS Servers" in line:
+                    parts = line.split(":", 1)
+                    if len(parts) > 1:
+                        summary["dns_servers"].append(parts[1].strip())
+
+    return summary
 
 
 def get_firewall_rules() -> List[str]:
@@ -378,23 +456,33 @@ class DFIRShell(cmd.Cmd):
                 print(f"... and {len(procs) - 20} more processes")
 
     def do_network(self, arg: str):
-        """network [--json] - Show network connections"""
+        """network [--json] [--summary] - Show network connections"""
         conns = get_network_connections()
+        if "--summary" in arg:
+            print(json.dumps(get_network_summary(), indent=2, default=str))
+            return
+
         if "--json" in arg:
-            print(json.dumps(conns, indent=2, default=str))
-        else:
-            if not conns:
-                print("No connections found")
-                return
-            
-            print(f"{'Protocol':<10} {'Local Address':<25} {'Remote Address':<25} {'State':<15} {'PID':<8}")
-            print("-" * 85)
-            for conn in conns[:30]:
-                print(f"{conn.get('protocol', 'N/A'):<10} {conn.get('local_address', 'N/A'):<25} "
-                      f"{conn.get('remote_address', 'N/A'):<25} {conn.get('state', 'N/A'):<15} "
-                      f"{conn.get('pid', 'N/A'):<8}")
-            if len(conns) > 30:
-                print(f"... and {len(conns) - 30} more connections")
+            print(json.dumps({"summary": get_network_summary(), "connections": conns}, indent=2, default=str))
+            return
+
+        print("Network summary:")
+        for k, v in get_network_summary().items():
+            print(f"  {k}: {v}")
+        print("\nConnections:")
+
+        if not conns:
+            print("No connections found")
+            return
+
+        print(f"{'Protocol':<10} {'Local Address':<25} {'Remote Address':<25} {'State':<15} {'PID':<8}")
+        print("-" * 85)
+        for conn in conns[:30]:
+            print(f"{conn.get('protocol', 'N/A'):<10} {conn.get('local_address', 'N/A'):<25} "
+                  f"{conn.get('remote_address', 'N/A'):<25} {conn.get('state', 'N/A'):<15} "
+                  f"{conn.get('pid', 'N/A'):<8}")
+        if len(conns) > 30:
+            print(f"... and {len(conns) - 30} more connections")
 
     def do_software(self, arg: str):
         """software [--json] - List installed software"""
@@ -416,9 +504,11 @@ class DFIRShell(cmd.Cmd):
         info = get_system_info()
         for key, value in info.items():
             if key == "systeminfo":
-                print(f"\n{key}:")
-                truncated = value[:500] + "..." if len(value) > 500 else value
-                print(truncated)
+                print(f"\nSystem info text:\n{value[:500]}...")
+            elif key == "network_summary" and isinstance(value, dict):
+                print("\nNetwork summary:")
+                for nkey, nval in value.items():
+                    print(f"  {nkey}: {nval}")
             else:
                 print(f"{key}: {value}")
 
