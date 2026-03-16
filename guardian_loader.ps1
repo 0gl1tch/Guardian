@@ -84,10 +84,19 @@ Read-Host
     $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
 
     $terminalArgs = @('-NoExit', '-NoProfile', '-File', $launcherScript)
-    Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs | Out-Null
-    Write-Host "✅ Guardian started in a new terminal. You can continue using this window." -ForegroundColor Green
-    Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
-    Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
+    try {
+        Write-Host "[*] Starting new terminal using: $terminalExe" -ForegroundColor Cyan
+        Write-Host "[*] Args: $terminalArgs" -ForegroundColor Cyan
+        Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs -ErrorAction Stop | Out-Null
+        Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
+        Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
+        Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
+    } catch {
+        Write-Host "[!] Failed to start new terminal: $_" -ForegroundColor Red
+        Write-Host "[!] Falling back to running inline in this window." -ForegroundColor Yellow
+        & $pythonExe $tempScript
+        Read-Host "Press Enter to close"
+    }
 
 } catch {
     Write-Host "[!] Error: $_" -ForegroundColor Red
