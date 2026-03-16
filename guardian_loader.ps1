@@ -25,7 +25,7 @@ Write-Host "🛡️  Guardian DFIR CLI - Loading..." -ForegroundColor Green
 # Configuration - Change these to your server
 $GITHUB_USERNAME = "your-username"
 $GITHUB_REPO = "Guardian"
-$GITHUB_BRANCH = "main"
+$GITHUB_BRANCH = "master"
 
 # Build the raw content URL (using GitHub as default)
 $RAW_URL = "https://raw.githubusercontent.com/$GITHUB_USERNAME/$GITHUB_REPO/$GITHUB_BRANCH/guardian_standalone.py"
@@ -49,7 +49,14 @@ try {
     
     # Execute Python code inline, completely in-memory
     # The script will start the interactive REPL
-    $pythonCode | python3
+    if (Get-Command python3 -ErrorAction SilentlyContinue) {
+        $pythonCode | python3
+    } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+        $pythonCode | python
+    } else {
+        Write-Host "[!] Python not found. Install Python 3 and add to PATH." -ForegroundColor Red
+        exit 1
+    }
     
 } catch {
     Write-Host "[!] Error: $_" -ForegroundColor Red
