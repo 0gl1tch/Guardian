@@ -62,19 +62,21 @@ try {
         exit 1
     }
 
-    $terminalExe = $null
-    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-        $terminalExe = (Get-Command pwsh).Source
-    } elseif (Get-Command powershell -ErrorAction SilentlyContinue) {
-        $terminalExe = (Get-Command powershell).Source
-    } else {
-        Write-Host "[!] Neither pwsh nor powershell found to spawn interactive terminal." -ForegroundColor Red
+    $terminalExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (-not (Test-Path $terminalExe)) {
+        $terminalExe = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
+    }
+    if (-not (Test-Path $terminalExe)) {
+        $terminalExe = "$env:ProgramFiles(x86)\PowerShell\7\pwsh.exe"
+    }
+    if (-not (Test-Path $terminalExe)) {
+        Write-Host "[!] Could not find powershell executable to spawn terminal." -ForegroundColor Red
         exit 1
     }
 
     Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
-    $escapedPythonExe = $pythonExe -replace "'", "''"
-    $escapedTempScript = $tempScript -replace "'", "''"
+    $escapedPythonExe = $pythonExe.Replace("'", "''")
+    $escapedTempScript = $tempScript.Replace("'", "''")
     $runCommand = "& '$escapedPythonExe' '$escapedTempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
     $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $runCommand)
 
