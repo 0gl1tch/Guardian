@@ -23,7 +23,7 @@ try {
 Write-Host "🛡️  Guardian DFIR CLI - Loading..." -ForegroundColor Green
 
 # Configuration - Change these to your server
-$GITHUB_USERNAME = "your-username"
+$GITHUB_USERNAME = "0gl1tch"  # Update this if using your own GitHub account
 $GITHUB_REPO = "Guardian"
 $GITHUB_BRANCH = "master"
 
