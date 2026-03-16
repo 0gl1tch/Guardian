@@ -84,12 +84,17 @@ Read-Host
     $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
 
     # Build stable argument string
-    $terminalArgs = "-NoExit -NoProfile -File `"$launcherScript`""
+    $launcherCommand = "& '$launcherScript'"
+    if ($terminalExe -like '*pwsh*') {
+        $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $launcherCommand)
+    } else {
+        $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $launcherCommand)
+    }
 
     try {
         Write-Host "[*] Starting new terminal using: $terminalExe" -ForegroundColor Cyan
         Write-Host "[*] Args: $terminalArgs" -ForegroundColor Cyan
-        Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs -ErrorAction Stop | Out-Null
+        Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs -WindowStyle Normal -ErrorAction Stop | Out-Null
         Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
         Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
