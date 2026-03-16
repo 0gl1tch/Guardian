@@ -7,11 +7,12 @@
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'SilentlyContinue'
 
-function Validate-PythonExe {
-    param([string]$Candidate)
+function Invoke-PythonVersionCheck {
+    param([string]$Exe, [string[]]$Args)
     try {
-        $v = & "$Candidate" --version 2>&1
-        if ($LASTEXITCODE -eq 0 -and $v -match 'Python\s+3\.') {
+        $cmdArgs = @($Args) + '--version'
+        $output = & $Exe @cmdArgs 2>&1
+        if ($LASTEXITCODE -eq 0 -and $output -match 'Python\s+3\.') {
             return $true
         }
     } catch {
@@ -19,51 +20,48 @@ function Validate-PythonExe {
     return $false
 }
 
-function Get-PythonExeCandidates {
+function Get-PythonCandidates {
     @(
-        'python3',
-        'python',
-        'py -3',
-        'py -3.12',
-        'py -3.11',
-        'py -3.10',
-        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:ProgramFiles\Python\Python312\python.exe",
-        "$env:ProgramFiles\Python\Python311\python.exe",
-        "$env:ProgramFiles\Python\Python310\python.exe",
-        "C:\\Python312\\python.exe",
-        "C:\\Python311\\python.exe",
-        "C:\\Python310\\python.exe"
+        @{Exe='py'; Args=@('-3')},
+        @{Exe='py'; Args=@('-3.12')},
+        @{Exe='py'; Args=@('-3.11')},
+        @{Exe='py'; Args=@('-3.10')},
+        @{Exe='python3'; Args=@()},
+        @{Exe='python'; Args=@()},
+        @{Exe="$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"; Args=@()},
+        @{Exe="$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"; Args=@()},
+        @{Exe="$env:LOCALAPPDATA\Programs\Python\Python310\python.exe"; Args=@()},
+        @{Exe="$env:ProgramFiles\Python\Python312\python.exe"; Args=@()},
+        @{Exe="$env:ProgramFiles\Python\Python311\python.exe"; Args=@()},
+        @{Exe="$env:ProgramFiles\Python\Python310\python.exe"; Args=@()},
+        @{Exe='C:\\Python312\\python.exe'; Args=@()},
+        @{Exe='C:\\Python311\\python.exe'; Args=@()},
+        @{Exe='C:\\Python310\\python.exe'; Args=@()}
     )
 }
 
 function Find-ValidPythonExe {
-    foreach ($candidate in Get-PythonExeCandidates) {
+    foreach ($candidate in Get-PythonCandidates) {
+        $exe = $candidate.Exe
+        $args = $candidate.Args
         try {
-            $parts = $candidate -split ' '
-            $exe = $parts[0]
-            $args = @()
-            if ($parts.Length -gt 1) { $args = $parts[1..($parts.Length-1)] }
-
-            $found = $null
-            if (Get-Command $exe -ErrorAction SilentlyContinue) {
-                $found = (Get-Command $exe).Source
-            } elseif (Test-Path $candidate) {
-                $found = $candidate
+            # Resolve environment variable segments
+            $resolvedExe = (Invoke-Expression "\"$exe\"") 2>$null
+            if (-not $resolvedExe) {
+                $resolvedExe = $exe
+            }
+            if (Test-Path $resolvedExe) {
+                $checkExe = $resolvedExe
+            } elseif (Get-Command $exe -ErrorAction SilentlyContinue) {
+                $checkExe = (Get-Command $exe).Source
+            } elseif (Get-Command $resolvedExe -ErrorAction SilentlyContinue) {
+                $checkExe = (Get-Command $resolvedExe).Source
+            } else {
+                continue
             }
 
-            if ($found) {
-                $versionArgs = @('--version')
-                if ($args) { $versionArgs = $args + $versionArgs }
-                try {
-                    $output = & $exe @versionArgs 2>&1
-                    if ($LASTEXITCODE -eq 0 -and $output -match 'Python\s+3\.') {
-                        return @{ Exe = $exe; Args = $args }
-                    }
-                } catch {
-                }
+            if (Invoke-PythonVersionCheck -Exe $checkExe -Args $args) {
+                return @{ Exe = $checkExe; Args = $args }
             }
         } catch {
         }
@@ -71,40 +69,40 @@ function Find-ValidPythonExe {
     return $null
 }
 
-function Validate-PythonExe {
-    param([string]$Candidate)
-    try {
-        $v = & "$Candidate" --version 2>&1
-        if ($LASTEXITCODE -eq 0 -and $v -match 'Python\s+3\.') {
-            return $true
-        }
-    } catch {
-    }
-    return $false
-}
-
 function Install-Python3 {
     Write-Host "[*] Python not found. Attempting automated install..." -ForegroundColor Cyan
+    $installSucceeded = $false
     if (Get-Command winget -ErrorAction SilentlyContinue) {
-        try {
-            Write-Host "[*] Installing Python 3 with winget..." -ForegroundColor Cyan
-            winget install --id Python.Python.3 -e --source winget --accept-package-agreements --accept-source-agreements -h | Out-Null
-            return $true
-        } catch {
-            Write-Host "[!] winget install failed: $_" -ForegroundColor Yellow
+        $wingetCandidates = @(
+            'Python.Python.3',
+            'Python.Python.3.12',
+            'Python.Python.3.11',
+            'Python.Python.3.10'
+        )
+        foreach ($id in $wingetCandidates) {
+            try {
+                Write-Host "[*] winget installing $id..." -ForegroundColor Cyan
+                winget install --id $id -e --source winget --accept-package-agreements --accept-source-agreements -h | Out-Null
+                $installSucceeded = $true
+                break
+            } catch {
+                Write-Host "[!] winget $id failed: $_" -ForegroundColor Yellow
+            }
         }
     }
-    if (Get-Command choco -ErrorAction SilentlyContinue) {
-        try {
-            Write-Host "[*] Installing Python 3 with choco..." -ForegroundColor Cyan
-            choco install python -y | Out-Null
-            return $true
-        } catch {
-            Write-Host "[!] choco install failed: $_" -ForegroundColor Yellow
+    if (-not $installSucceeded -and (Get-Command choco -ErrorAction SilentlyContinue)) {
+        foreach ($pkg in @('python', 'python3')) {
+            try {
+                Write-Host "[*] choco installing $pkg..." -ForegroundColor Cyan
+                choco install $pkg -y | Out-Null
+                $installSucceeded = $true
+                break
+            } catch {
+                Write-Host "[!] choco $pkg failed: $_" -ForegroundColor Yellow
+            }
         }
     }
-    Write-Host "[!] Could not automatically install Python. Please install Python 3.10+ and add to PATH." -ForegroundColor Red
-    return $false
+    return $installSucceeded
 }
 
 Write-Host "🛡️  Guardian DFIR CLI - Loading..." -ForegroundColor Green
