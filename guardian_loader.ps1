@@ -78,12 +78,11 @@ try {
     $escapedPythonExe = $pythonExe.Replace("'", "''")
     $escapedTempScript = $tempScript.Replace("'", "''")
     $runCommand = "& '$escapedPythonExe' '$escapedTempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
-    $terminalArgs = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $runCommand)
+    $cmd = "start powershell -NoExit -NoProfile -ExecutionPolicy Bypass -Command \"$runCommand\""
 
     try {
-        Write-Host "[*] Starting new terminal using: $terminalExe" -ForegroundColor Cyan
-        Write-Host "[*] Args: $terminalArgs" -ForegroundColor Cyan
-        Start-Process -FilePath $terminalExe -ArgumentList $terminalArgs -WindowStyle Normal -ErrorAction Stop | Out-Null
+        Write-Host "[*] Launching new terminal via cmd: $cmd" -ForegroundColor Cyan
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $cmd -WindowStyle Normal -ErrorAction Stop | Out-Null
         Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
     } catch {
