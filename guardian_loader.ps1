@@ -7,30 +7,57 @@
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'SilentlyContinue'
 
-function Get-PythonExe {
-    if (Get-Command python3 -ErrorAction SilentlyContinue) {
-        return (Get-Command python3).Source
+function Validate-PythonExe {
+    param([string]$Candidate)
+    try {
+        $v = & "$Candidate" --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and $v -match 'Python\s+3\.') {
+            return $true
+        }
+    } catch {
     }
-    if (Get-Command python -ErrorAction SilentlyContinue) {
-        return (Get-Command python).Source
-    }
-    return $null
+    return $false
 }
 
-function Get-PythonExeFromCommonPaths {
-    $commonPaths = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+function Get-PythonExeCandidates {
+    @(
+        'python3',
+        'python',
+        'py -3',
+        'py -3.12',
+        'py -3.11',
+        'py -3.10',
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:ProgramFiles\Python310\python.exe",
-        "$env:ProgramFiles\Python311\python.exe",
-        "$env:ProgramFiles\Python312\python.exe",
-        "C:\\Python310\\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:ProgramFiles\Python\Python312\python.exe",
+        "$env:ProgramFiles\Python\Python311\python.exe",
+        "$env:ProgramFiles\Python\Python310\python.exe",
+        "C:\\Python312\\python.exe",
         "C:\\Python311\\python.exe",
-        "C:\\Python312\\python.exe"
+        "C:\\Python310\\python.exe"
     )
-    foreach ($path in $commonPaths) {
-        if (Test-Path $path) { return $path }
+}
+
+function Find-ValidPythonExe {
+    foreach ($candidate in Get-PythonExeCandidates) {
+        try {
+            if ($candidate -match 'py') {
+                $parts = $candidate -split ' '
+                $exe = $parts[0]
+                $args = $parts[1..($parts.Length-1)]
+                $output = & $exe @args --version 2>&1
+                if ($LASTEXITCODE -eq 0 -and $output -match 'Python\s+3\.') { return "$exe $($args -join ' ')" }
+            } else {
+                if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+                    $path = (Get-Command $candidate).Source
+                    if (Validate-PythonExe -Candidate $path) { return $path }
+                } elseif (Test-Path $candidate) {
+                    if (Validate-PythonExe -Candidate $candidate) { return $candidate }
+                }
+            }
+        } catch {
+        }
     }
     return $null
 }
@@ -101,27 +128,20 @@ try {
     $tempScript = Join-Path $env:TEMP "guardian_standalone_$(Get-Random).py"
     $pythonCode | Out-File -FilePath $tempScript -Encoding UTF8
 
-    $pythonExe = Get-PythonExe
-    if ($pythonExe) {
-        if (-not (Validate-PythonExe -Candidate $pythonExe)) {
-            Write-Host "[!] Found Python executable but failed validation: $pythonExe" -ForegroundColor Yellow
-            $pythonExe = $null
-        }
-    }
+    $pythonExe = Find-ValidPythonExe
 
     if (-not $pythonExe) {
         if (-not (Install-Python3)) {
             Write-Host "[!] Python install failed." -ForegroundColor Red
             exit 1
         }
-        Start-Sleep -Seconds 4
-        $pythonExe = Get-PythonExe
-        if (-not $pythonExe) { $pythonExe = Get-PythonExeFromCommonPaths }
+        Start-Sleep -Seconds 6
+        $pythonExe = Find-ValidPythonExe
     }
 
-    if ($pythonExe -and -not (Validate-PythonExe -Candidate $pythonExe)) {
-        Write-Host "[!] Python executable exists but could not run --version: $pythonExe" -ForegroundColor Yellow
-        $pythonExe = $null
+    if (-not $pythonExe) {
+        Write-Host "[!] Python not found after installation attempt. Trying manual fallback list..." -ForegroundColor Yellow
+        $pythonExe = Find-ValidPythonExe
     }
 
     if (-not $pythonExe) {
