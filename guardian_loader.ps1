@@ -62,19 +62,33 @@ try {
         exit 1
     }
 
-    $terminalExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
-    if (-not (Test-Path $terminalExe)) {
-        $terminalExe = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
+    $terminalCandidates = @(
+        "wt.exe",
+        "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe",
+        "$env:ProgramFiles\PowerShell\7\pwsh.exe",
+        "$env:ProgramFiles(x86)\PowerShell\7\pwsh.exe",
+        "powershell.exe",
+        "pwsh.exe"
+    )
+
+    $terminalExe = $null
+    foreach ($candidate in $terminalCandidates) {
+        if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+            $terminalExe = (Get-Command $candidate).Source
+            break
+        }
+        if (Test-Path $candidate) {
+            $terminalExe = $candidate
+            break
+        }
     }
-    if (-not (Test-Path $terminalExe)) {
-        $terminalExe = "$env:ProgramFiles(x86)\PowerShell\7\pwsh.exe"
-    }
-    if (-not (Test-Path $terminalExe)) {
-        Write-Host "[!] Could not find powershell executable to spawn terminal." -ForegroundColor Red
+
+    if (-not $terminalExe) {
+        Write-Host "[!] Could not find any terminal executable (wt/powershell/pwsh)." -ForegroundColor Red
         exit 1
     }
 
-    Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
+    Write-Host "[*] Launching Guardian in a new terminal session using: $terminalExe" -ForegroundColor Cyan
 
     # Create a temporary PowerShell launcher script to avoid escaping issues
     $launcherScript = Join-Path $env:TEMP "guardian_launcher_$(Get-Random).ps1"
@@ -101,10 +115,19 @@ Read-Host 'Press Enter to close this window.'
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
         Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
     } catch {
-        Write-Host "[!] Failed to start new terminal: $_" -ForegroundColor Red
-        Write-Host "[!] Falling back to running inline in this window." -ForegroundColor Yellow
-        & $pythonExe $tempScript
-        Read-Host "Press Enter to close"
+        Write-Host "[!] Start-Process failed: $_" -ForegroundColor Yellow
+        Write-Host "[*] Trying fallback via cmd start with powershell..." -ForegroundColor Cyan
+        try {
+            Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "start", "powershell", "-NoExit", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $launcherScript -WindowStyle Normal -ErrorAction Stop | Out-Null
+            Write-Host "✅ Guardian started in new terminal (fallback)." -ForegroundColor Green
+            Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
+            Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
+        } catch {
+            Write-Host "[!] Fallback failed too: $_" -ForegroundColor Red
+            Write-Host "[!] Running inline in this window." -ForegroundColor Yellow
+            & $pythonExe $tempScript
+            Read-Host "Press Enter to close"
+        }
     }
 
     Read-Host "Loader complete. Press Enter to close this loader shell."
