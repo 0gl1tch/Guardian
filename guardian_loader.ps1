@@ -75,16 +75,25 @@ try {
     }
 
     Write-Host "[*] Launching Guardian in a new terminal session..." -ForegroundColor Cyan
-    $escapedPythonExe = $pythonExe.Replace("'", "''")
-    $escapedTempScript = $tempScript.Replace("'", "''")
-    $runCommand = "& '$escapedPythonExe' '$escapedTempScript'; Write-Host ''; Write-Host 'Guardian session ended.'; Read-Host 'Press Enter to close this window.'"
-    $cmd = "start powershell -NoExit -NoProfile -ExecutionPolicy Bypass -Command \"$runCommand\""
 
+    # Create a temporary PowerShell launcher script to avoid escaping issues
+    $launcherScript = Join-Path $env:TEMP "guardian_launcher_$(Get-Random).ps1"
+    $launcherContent = @"
+Write-Host 'Guardian session started. Output below:' -ForegroundColor Green
+& '$pythonExe' '$tempScript'
+Write-Host ''
+Write-Host 'Guardian session ended.' -ForegroundColor Green
+Read-Host 'Press Enter to close this window.'
+"@
+    $launcherContent | Out-File -FilePath $launcherScript -Encoding UTF8
+
+    $cmd = "start powershell -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$launcherScript`""
     try {
         Write-Host "[*] Launching new terminal via cmd: $cmd" -ForegroundColor Cyan
         Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $cmd -WindowStyle Normal -ErrorAction Stop | Out-Null
         Write-Host "✅ Guardian started in new terminal." -ForegroundColor Green
         Write-Host "Temp script: $tempScript" -ForegroundColor DarkCyan
+        Write-Host "Launcher script: $launcherScript" -ForegroundColor DarkCyan
     } catch {
         Write-Host "[!] Failed to start new terminal: $_" -ForegroundColor Red
         Write-Host "[!] Falling back to running inline in this window." -ForegroundColor Yellow
