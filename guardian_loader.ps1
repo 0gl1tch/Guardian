@@ -7,17 +7,38 @@
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'SilentlyContinue'
 
-# Check if Python is available
-try {
-    $pythonCheck = python3 --version 2>&1
-    if (-not $pythonCheck) {
-        Write-Host "[!] Python 3 not found or not in PATH"
-        Write-Host "[!] Please install Python 3.10+ and add to PATH"
-        exit 1
+function Get-PythonExe {
+    if (Get-Command python3 -ErrorAction SilentlyContinue) {
+        return (Get-Command python3).Source
     }
-} catch {
-    Write-Host "[!] Python 3 is required. Please install it first."
-    exit 1
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return (Get-Command python).Source
+    }
+    return $null
+}
+
+function Install-Python3 {
+    Write-Host "[*] Python not found. Attempting automated install..." -ForegroundColor Cyan
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host "[*] Installing Python 3 with winget..." -ForegroundColor Cyan
+            winget install --id Python.Python.3 -e --source winget --accept-package-agreements --accept-source-agreements -h | Out-Null
+            return $true
+        } catch {
+            Write-Host "[!] winget install failed: $_" -ForegroundColor Yellow
+        }
+    }
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host "[*] Installing Python 3 with choco..." -ForegroundColor Cyan
+            choco install python -y | Out-Null
+            return $true
+        } catch {
+            Write-Host "[!] choco install failed: $_" -ForegroundColor Yellow
+        }
+    }
+    Write-Host "[!] Could not automatically install Python. Please install Python 3.10+ and add to PATH." -ForegroundColor Red
+    return $false
 }
 
 Write-Host "🛡️  Guardian DFIR CLI - Loading..." -ForegroundColor Green
@@ -50,15 +71,17 @@ try {
     $tempScript = Join-Path $env:TEMP "guardian_standalone_$(Get-Random).py"
     $pythonCode | Out-File -FilePath $tempScript -Encoding UTF8
 
-    $pythonExe = $null
-    if (Get-Command python3 -ErrorAction SilentlyContinue) {
-        $pythonExe = (Get-Command python3).Source
-    } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-        $pythonExe = (Get-Command python).Source
+    $pythonExe = Get-PythonExe
+    if (-not $pythonExe) {
+        if (-not (Install-Python3)) {
+            exit 1
+        }
+        Start-Sleep -Seconds 3
+        $pythonExe = Get-PythonExe
     }
 
     if (-not $pythonExe) {
-        Write-Host "[!] Python not found. Install Python 3 and add to PATH." -ForegroundColor Red
+        Write-Host "[!] Python not found after installation attempt. Please install Python 3 manually." -ForegroundColor Red
         exit 1
     }
 
