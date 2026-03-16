@@ -28,15 +28,16 @@ function Get-PythonCandidates {
         @{Exe='py'; Args=@('-3.10')},
         @{Exe='python3'; Args=@()},
         @{Exe='python'; Args=@()},
+        @{Exe="$env:WINDIR\py.exe"; Args=@('-3')},
         @{Exe="$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"; Args=@()},
         @{Exe="$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"; Args=@()},
         @{Exe="$env:LOCALAPPDATA\Programs\Python\Python310\python.exe"; Args=@()},
         @{Exe="$env:ProgramFiles\Python\Python312\python.exe"; Args=@()},
         @{Exe="$env:ProgramFiles\Python\Python311\python.exe"; Args=@()},
         @{Exe="$env:ProgramFiles\Python\Python310\python.exe"; Args=@()},
-        @{Exe='C:\\Python312\\python.exe'; Args=@()},
-        @{Exe='C:\\Python311\\python.exe'; Args=@()},
-        @{Exe='C:\\Python310\\python.exe'; Args=@()}
+        @{Exe='C:\Python312\python.exe'; Args=@()},
+        @{Exe='C:\Python311\python.exe'; Args=@()},
+        @{Exe='C:\Python310\python.exe'; Args=@()}
     )
 }
 
@@ -45,20 +46,16 @@ function Find-ValidPythonExe {
         $exe = $candidate.Exe
         $args = $candidate.Args
         try {
-            # Resolve environment variable segments
-            $resolvedExe = (Invoke-Expression "\"$exe\"") 2>$null
-            if (-not $resolvedExe) {
-                $resolvedExe = $exe
-            }
-            if (Test-Path $resolvedExe) {
-                $checkExe = $resolvedExe
+            $checkExe = $null
+            if (Test-Path $exe) {
+                $checkExe = $exe
             } elseif (Get-Command $exe -ErrorAction SilentlyContinue) {
                 $checkExe = (Get-Command $exe).Source
-            } elseif (Get-Command $resolvedExe -ErrorAction SilentlyContinue) {
-                $checkExe = (Get-Command $resolvedExe).Source
-            } else {
-                continue
             }
+            if (-not $checkExe -and $exe -match '^.*\\python.exe$' -and Test-Path $exe) {
+                $checkExe = $exe
+            }
+            if (-not $checkExe) { continue }
 
             if (Invoke-PythonVersionCheck -Exe $checkExe -Args $args) {
                 return @{ Exe = $checkExe; Args = $args }
